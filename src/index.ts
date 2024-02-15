@@ -38,7 +38,7 @@ const onListening = (): void => {
   }
 };
 
-const port = normalizePort(process.env.PORT || 3000);
+const port = normalizePort(process.env.PORT || 3001);
 
 const server = http.createServer();
 server.listen(port);
@@ -46,5 +46,10 @@ server.on('error', onError);
 server.on('listening', onListening);
 
 // socket.io handlers
-let io = new Server(server, {});
+let io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+  },
+});
 socketIoHandlers(io);
