@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "outDir": "dist",
+        "strictNullChecks": true,
+        "resolveJsonModule": true,
+        "paths": {
+            "@/handler/*": ["./src/event-handlers/*"],
+            "@/type/*": ["./src/types/*"],
+            "@/utils": ["./src/utils"]
+        }
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
