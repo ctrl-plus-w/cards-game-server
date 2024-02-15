@@ -8,6 +8,7 @@
         "paths": {
             "@/handler/*": ["./src/event-handlers/*"],
             "@/type/*": ["./src/types/*"],
+            "@/class/*": ["./src/classes/*"],
             "@/utils": ["./src/utils"]
         }
     },

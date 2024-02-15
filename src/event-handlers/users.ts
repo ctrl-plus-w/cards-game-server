@@ -13,7 +13,7 @@ const users = (app: AppData, socket: Socket<PossibleData, {}>): Handler => ({
 });
 
 type ProfileOpData = Player;
-type ProfileOpFn = (app: AppData, socket: Socket<ProfileOpData, {}>) => (data: ProfileOpData) => void;
+type ProfileOpFn = (app: AppData, socket: Socket<ProfileOpData, any>) => (data: ProfileOpData) => void;
 
 const createProfile: ProfileOpFn = (app, socket) => (data) => {
   console.log(`Created a profile with id: '${data.id}' and username: '${data.username}'. `);
@@ -28,6 +28,11 @@ const setProfile: ProfileOpFn = (app, socket) => (data) => {
   const index = app.players.findIndex((player) => player.id === data.id);
   if (index === -1) app.players.push(data);
   socket.player = data;
+
+  const game = app.games.find(
+    (game) => !!game.players.find((player) => player.id === data.id) || game.owner.id === data.id,
+  );
+  if (game) socket.emit('join-game', game.id);
 };
 
 const deleteProfile: ProfileOpFn = (app, socket) => (data) => {
