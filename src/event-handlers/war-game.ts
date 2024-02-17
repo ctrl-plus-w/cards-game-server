@@ -2,12 +2,12 @@ import { Server } from 'socket.io';
 import { uuid } from 'uuidv4';
 
 import Game from '@/class/Game';
-import PlayingCard from '@/class/PlayingCard';
+import PlayingCard, { CardSymbol } from '@/class/PlayingCard';
 
 import { IntRange } from '@/type/index.types';
-import { Socket, AppData, Player } from '@/type/socket.types';
+import { AppData, Player, Socket } from '@/type/socket.types';
 
-import { shuffle } from '@/utils';
+import { countElements, shuffle, values } from '@/utils';
 
 type Handler = {
   [key: string]: (param: any) => void;
@@ -17,7 +17,20 @@ const warGame = (app: AppData, socket: Socket<any, any>, io: Server): Handler =>
   'create-war-game': createGame(app, socket, io),
   'join-war-game': joinGame(app, socket, io),
   'get-war-game': getWarGame(app, socket),
+  'play-war-game-card': playWarGameCard(app, socket, io),
+  'delete-war-game': deleteWarGame(app, socket, io),
 });
+
+const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: Game; player?: Player } => {
+  const player = socket.player;
+
+  if (!player) return { game: undefined, player: undefined };
+
+  const game = Object.values(app.games).find(
+    (g) => !!g.players.find((p) => p.id === player.id) || g.owner.id === player.id,
+  );
+  return { game, player };
+};
 
 type CreateGameData = { owner: Player; maxPlayers: IntRange<2, 11> };
 type CreateGameFn = (app: AppData, socket: Socket<CreateGameData, any>, io: Server) => (data: CreateGameData) => void;
@@ -42,7 +55,14 @@ type JoinGameFn = (app: AppData, socket: Socket<JoinGameData, any>, io: Server) 
 
 const joinGame: JoinGameFn = (app, socket, io) => (data) => {
   const game = app.games[data.gameId];
-  if (!socket.player || !game || game.players.length >= game.maxPlayers) return;
+  if (
+    !socket.player ||
+    !game ||
+    game.players.length >= game.maxPlayers ||
+    !!game.players.find(({ id }) => socket.player?.id === id) ||
+    socket.player.id === game.owner.id
+  )
+    return socket.emit('war-game-not-found');
 
   app.games[game.id].players.push(socket.player);
   socket.join(game.id);
@@ -66,6 +86,10 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
         else app.games[game.id].playerCards[id] = [card];
       }
     }
+
+    for (let id in game.playerCards) {
+      app.games[game.id].playerCards[id].push(new PlayingCard(1, CardSymbol.DIAMOND));
+    }
   }
 
   io.to(game.id).emit('war-game-update', app.games[game.id]);
@@ -74,14 +98,74 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
 type GetWarGameFn = (app: AppData, socket: Socket<never, any>) => (data: never) => void;
 
 const getWarGame: GetWarGameFn = (app, socket) => (data) => {
-  if (!socket.player) return;
-
-  const id = socket.player.id;
-
-  const game = Object.values(app.games).find((g) => !!g.players.find((p) => p.id === id) || g.owner.id === id);
-  if (!game) return;
+  const { game } = getGameFromSocket(app, socket);
+  if (!game) return socket.emit('war-game-not-found');
 
   socket.emit('war-game-update', game);
+};
+
+type PlayWarGameCardFn = (app: AppData, socket: Socket<never, any>, io: Server) => (data: never) => void;
+
+const playWarGameCard: PlayWarGameCardFn = (app, socket, io) => (data) => {
+  const { game, player } = getGameFromSocket(app, socket);
+  if (!game || !player) return socket.emit('war-game-not-found');
+
+  app.games[game.id].playedCards[player.id] = [app.games[game.id].playerCards[player.id].pop()];
+
+  if (
+    Object.keys(app.games[game.id].playedCards).length === game.maxPlayers &&
+    values<PlayingCard[]>(app.games[game.id].playedCards).every((arr) => arr.length)
+  ) {
+    // while there are two cards that are equals
+    while (true) {
+      const lastPlayedCards = values<PlayingCard[]>(app.games[game.id].playedCards).map((a) => a[a.length - 1].rank);
+      const countedPlayedCards = countElements(lastPlayedCards);
+      if (Math.max(...values(countedPlayedCards)) === 1) break;
+
+      for (const id in app.games[game.id].playerCards) {
+        const playedCards = app.games[game.id].playedCards[id];
+        const lastPlayerCard = playedCards[playedCards.length - 1];
+
+        if (countedPlayedCards[lastPlayerCard.rank] > 1) {
+          for (let i = 0; i < 2; i++) app.games[game.id].playedCards[id].push(app.games[game.id].playerCards[id].pop());
+        }
+      }
+    }
+
+    setTimeout(() => {
+      const maxRank = Math.max(
+        ...values<PlayingCard[]>(app.games[game.id].playedCards).map((a) => a[a.length - 1].rank),
+      );
+
+      const winner = [...app.games[game.id].players, game.owner].find((player: Player) => {
+        const playedCards = app.games[game.id].playedCards[player.id];
+        return playedCards[playedCards.length - 1].rank === maxRank;
+      });
+      if (!winner) return;
+
+      const combinedCards = values<PlayingCard[]>(app.games[game.id].playedCards).reduce(
+        (acc, curr) => [...acc, ...curr],
+        [],
+      );
+
+      app.games[game.id].playerCards[winner.id].unshift(...combinedCards);
+      app.games[game.id].playedCards = {};
+
+      io.to(game.id).emit('war-game-update', app.games[game.id]);
+    }, 3000);
+  }
+
+  io.to(game.id).emit('war-game-update', app.games[game.id]);
+};
+
+type DeleteWarGameFn = (app: AppData, socket: Socket<never, any>, io: Server) => (data: never) => void;
+
+const deleteWarGame: DeleteWarGameFn = (app, socket, io) => (data) => {
+  const { game, player } = getGameFromSocket(app, socket);
+  if (!game || !player || player.id !== game.owner.id) return socket.emit('war-game-not-found');
+
+  delete app.games[game.id];
+  io.to(game.id).emit('war-game-deleted', game);
 };
 
 export default warGame;

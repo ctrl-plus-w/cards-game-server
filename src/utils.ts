@@ -15,3 +15,17 @@ export const shuffle = <T>(array: T[]) => {
   }
   return array;
 };
+
+export const values = <TVal>(obj: Record<string, TVal>) => Object.values(obj) as TVal[];
+
+export const countElements = <T extends string | number | symbol>(arr: T[]) => {
+  return arr.reduce(
+    (counts, value) => {
+      if (value in counts) counts[value]++;
+      else counts[value] = 1;
+
+      return counts;
+    },
+    {} as Record<T, number>,
+  );
+};
