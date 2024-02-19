@@ -1,7 +1,7 @@
 import { Socket as _Socket } from 'socket.io';
 import { EventsMap } from 'socket.io/dist/typed-events';
 
-import Game from '@/class/Game';
+import WarGame from '@/class/WarGame';
 
 export interface Socket<OnData extends EventsMap, EmitData extends EventsMap> extends _Socket<OnData, EmitData> {
   player?: Player;
@@ -15,7 +15,7 @@ export type Player = {
 export type AppData = {
   allSockets: Socket<any, any>[];
   players: Player[];
-  games: Game[];
+  games: WarGame[];
 };
 
 export enum SocketName {}

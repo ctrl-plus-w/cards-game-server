@@ -1,8 +1,8 @@
 import { Server } from 'socket.io';
 import { uuid } from 'uuidv4';
 
-import Game from '@/class/Game';
 import PlayingCard, { CardSymbol } from '@/class/PlayingCard';
+import WarGame from '@/class/WarGame';
 
 import { IntRange } from '@/type/index.types';
 import { AppData, Player, Socket } from '@/type/socket.types';
@@ -21,7 +21,7 @@ const warGame = (app: AppData, socket: Socket<any, any>, io: Server): Handler =>
   'delete-war-game': deleteWarGame(app, socket, io),
 });
 
-const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: Game; player?: Player } => {
+const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: WarGame; player?: Player } => {
   const player = socket.player;
 
   if (!player) return { game: undefined, player: undefined };
@@ -40,7 +40,7 @@ const createGame: CreateGameFn = (app, socket, io) => (data) => {
 
   const id = uuid();
 
-  const game = new Game(id, data.owner, data.maxPlayers);
+  const game = new WarGame(id, data.owner, data.maxPlayers);
 
   app.games[id] = game;
   socket.join(id);

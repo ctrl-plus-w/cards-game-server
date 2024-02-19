@@ -3,7 +3,7 @@ import PlayingCard from './PlayingCard';
 import { IntRange } from '@/type/index.types';
 import { Player } from '@/type/socket.types';
 
-class Game {
+class WarGame {
   id: string;
   owner: Player;
   maxPlayers: IntRange<2, 11>;
@@ -21,4 +21,4 @@ class Game {
   }
 }
 
-export default Game;
+export default WarGame;
