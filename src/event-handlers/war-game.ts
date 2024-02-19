@@ -86,10 +86,6 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
         else app.warGames[game.id].playerCards[id] = [card];
       }
     }
-
-    for (let id in game.playerCards) {
-      app.warGames[game.id].playerCards[id].push(new PlayingCard(1, CardSymbol.DIAMOND));
-    }
   }
 
   io.to(game.id).emit('war-game-update', app.warGames[game.id]);
