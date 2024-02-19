@@ -29,7 +29,7 @@ const setProfile: ProfileOpFn = (app, socket) => (data) => {
   if (index === -1) app.players.push(data);
   socket.player = data;
 
-  const game = app.games.find(
+  const game = app.warGames.find(
     (game) => !!game.players.find((player) => player.id === data.id) || game.owner.id === data.id,
   );
   if (game) socket.emit('join-game', game.id);

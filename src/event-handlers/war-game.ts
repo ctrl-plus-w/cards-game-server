@@ -26,7 +26,7 @@ const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: War
 
   if (!player) return { game: undefined, player: undefined };
 
-  const game = Object.values(app.games).find(
+  const game = Object.values(app.warGames).find(
     (g) => !!g.players.find((p) => p.id === player.id) || g.owner.id === player.id,
   );
   return { game, player };
@@ -42,7 +42,7 @@ const createGame: CreateGameFn = (app, socket, io) => (data) => {
 
   const game = new WarGame(id, data.owner, data.maxPlayers);
 
-  app.games[id] = game;
+  app.warGames[id] = game;
   socket.join(id);
 
   socket.emit('join-game', game.id);
@@ -54,7 +54,7 @@ type JoinGameData = { gameId: string };
 type JoinGameFn = (app: AppData, socket: Socket<JoinGameData, any>, io: Server) => (data: JoinGameData) => void;
 
 const joinGame: JoinGameFn = (app, socket, io) => (data) => {
-  const game = app.games[data.gameId];
+  const game = app.warGames[data.gameId];
   if (
     !socket.player ||
     !game ||
@@ -64,7 +64,7 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
   )
     return socket.emit('war-game-not-found');
 
-  app.games[game.id].players.push(socket.player);
+  app.warGames[game.id].players.push(socket.player);
   socket.join(game.id);
 
   socket.emit('join-game', game.id);
@@ -82,17 +82,17 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
         const card = deck.pop();
         if (!card) break;
 
-        if (id in game.playerCards) app.games[game.id].playerCards[id].push(card);
-        else app.games[game.id].playerCards[id] = [card];
+        if (id in game.playerCards) app.warGames[game.id].playerCards[id].push(card);
+        else app.warGames[game.id].playerCards[id] = [card];
       }
     }
 
     for (let id in game.playerCards) {
-      app.games[game.id].playerCards[id].push(new PlayingCard(1, CardSymbol.DIAMOND));
+      app.warGames[game.id].playerCards[id].push(new PlayingCard(1, CardSymbol.DIAMOND));
     }
   }
 
-  io.to(game.id).emit('war-game-update', app.games[game.id]);
+  io.to(game.id).emit('war-game-update', app.warGames[game.id]);
 };
 
 type GetWarGameFn = (app: AppData, socket: Socket<never, any>) => (data: never) => void;
@@ -110,52 +110,53 @@ const playWarGameCard: PlayWarGameCardFn = (app, socket, io) => (data) => {
   const { game, player } = getGameFromSocket(app, socket);
   if (!game || !player) return socket.emit('war-game-not-found');
 
-  app.games[game.id].playedCards[player.id] = [app.games[game.id].playerCards[player.id].pop()];
+  app.warGames[game.id].playedCards[player.id] = [app.warGames[game.id].playerCards[player.id].pop()];
 
   if (
-    Object.keys(app.games[game.id].playedCards).length === game.maxPlayers &&
-    values<PlayingCard[]>(app.games[game.id].playedCards).every((arr) => arr.length)
+    Object.keys(app.warGames[game.id].playedCards).length === game.maxPlayers &&
+    values<PlayingCard[]>(app.warGames[game.id].playedCards).every((arr) => arr.length)
   ) {
     // while there are two cards that are equals
     while (true) {
-      const lastPlayedCards = values<PlayingCard[]>(app.games[game.id].playedCards).map((a) => a[a.length - 1].rank);
+      const lastPlayedCards = values<PlayingCard[]>(app.warGames[game.id].playedCards).map((a) => a[a.length - 1].rank);
       const countedPlayedCards = countElements(lastPlayedCards);
       if (Math.max(...values(countedPlayedCards)) === 1) break;
 
-      for (const id in app.games[game.id].playerCards) {
-        const playedCards = app.games[game.id].playedCards[id];
+      for (const id in app.warGames[game.id].playerCards) {
+        const playedCards = app.warGames[game.id].playedCards[id];
         const lastPlayerCard = playedCards[playedCards.length - 1];
 
         if (countedPlayedCards[lastPlayerCard.rank] > 1) {
-          for (let i = 0; i < 2; i++) app.games[game.id].playedCards[id].push(app.games[game.id].playerCards[id].pop());
+          for (let i = 0; i < 2; i++)
+            app.warGames[game.id].playedCards[id].push(app.warGames[game.id].playerCards[id].pop());
         }
       }
     }
 
     setTimeout(() => {
       const maxRank = Math.max(
-        ...values<PlayingCard[]>(app.games[game.id].playedCards).map((a) => a[a.length - 1].rank),
+        ...values<PlayingCard[]>(app.warGames[game.id].playedCards).map((a) => a[a.length - 1].rank),
       );
 
-      const winner = [...app.games[game.id].players, game.owner].find((player: Player) => {
-        const playedCards = app.games[game.id].playedCards[player.id];
+      const winner = [...app.warGames[game.id].players, game.owner].find((player: Player) => {
+        const playedCards = app.warGames[game.id].playedCards[player.id];
         return playedCards[playedCards.length - 1].rank === maxRank;
       });
       if (!winner) return;
 
-      const combinedCards = values<PlayingCard[]>(app.games[game.id].playedCards).reduce(
+      const combinedCards = values<PlayingCard[]>(app.warGames[game.id].playedCards).reduce(
         (acc, curr) => [...acc, ...curr],
         [],
       );
 
-      app.games[game.id].playerCards[winner.id].unshift(...combinedCards);
-      app.games[game.id].playedCards = {};
+      app.warGames[game.id].playerCards[winner.id].unshift(...combinedCards);
+      app.warGames[game.id].playedCards = {};
 
-      io.to(game.id).emit('war-game-update', app.games[game.id]);
+      io.to(game.id).emit('war-game-update', app.warGames[game.id]);
     }, 3000);
   }
 
-  io.to(game.id).emit('war-game-update', app.games[game.id]);
+  io.to(game.id).emit('war-game-update', app.warGames[game.id]);
 };
 
 type DeleteWarGameFn = (app: AppData, socket: Socket<never, any>, io: Server) => (data: never) => void;
@@ -164,7 +165,7 @@ const deleteWarGame: DeleteWarGameFn = (app, socket, io) => (data) => {
   const { game, player } = getGameFromSocket(app, socket);
   if (!game || !player || player.id !== game.owner.id) return socket.emit('war-game-not-found');
 
-  delete app.games[game.id];
+  delete app.warGames[game.id];
   io.to(game.id).emit('war-game-deleted', game);
 };
 

@@ -7,7 +7,7 @@ import { AppData, Socket } from '@/type/socket.types';
 
 const app: AppData = {
   allSockets: [],
-  games: [],
+  warGames: [],
   players: [],
 };
 
