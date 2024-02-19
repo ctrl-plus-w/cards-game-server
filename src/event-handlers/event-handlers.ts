@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 
+import take6Game from '@/handler/take-6-game';
 import users from '@/handler/users';
 import warGame from '@/handler/war-game';
 
@@ -9,11 +10,12 @@ const app: AppData = {
   allSockets: [],
   warGames: [],
   players: [],
+  take6Games: [],
 };
 
 export default (io: Server) => {
   io.on('connection', (socket: Socket<any, any>) => {
-    const eventHandlers = [warGame(app, socket, io), users(app, socket)];
+    const eventHandlers = [warGame(app, socket, io), take6Game(app, socket, io), users(app, socket)];
 
     // TODO : When connecting, redirect to the game page if the player is already in a game.
 

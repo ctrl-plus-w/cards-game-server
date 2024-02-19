@@ -29,3 +29,9 @@ export const countElements = <T extends string | number | symbol>(arr: T[]) => {
     {} as Record<T, number>,
   );
 };
+
+export const lastEl = <T>(arr: T[]) => {
+  if (arr.length) return arr[arr.length - 1];
+};
+
+export const isDefined = <T>(el: T | undefined | null): el is T => el !== undefined && el !== null;
