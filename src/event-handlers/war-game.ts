@@ -45,7 +45,7 @@ const createGame: CreateGameFn = (app, socket, io) => (data) => {
   app.warGames[id] = game;
   socket.join(id);
 
-  socket.emit('join-game', game.id);
+  socket.emit('join-war-game', game.id);
 
   console.log('Game created:', game);
 };
@@ -67,7 +67,7 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
   app.warGames[game.id].players.push(socket.player);
   socket.join(game.id);
 
-  socket.emit('join-game', game.id);
+  socket.emit('join-war-game', game.id);
 
   if (game.players.length + 1 === game.maxPlayers) {
     const deck = shuffle(PlayingCard.generateDeck());
