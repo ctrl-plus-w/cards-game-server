@@ -68,6 +68,8 @@ const joinGame: JoinGameFn = (app, socket, io) => (data) => {
       }
     }
   }
+
+  io.to(game.id).emit('take-6-game-update', app.take6Games[game.id]);
 };
 
 type CreateGameData = { owner: Player; maxPlayers: IntRange<2, 11> };
