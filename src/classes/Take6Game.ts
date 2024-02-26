@@ -16,6 +16,7 @@ class Take6Game {
   playedCard: Record<string, Take6Card>;
   columns: [Take6Card[], Take6Card[], Take6Card[], Take6Card[], Take6Card[], Take6Card[]];
   deck: Take6Card[];
+  isFinished: boolean;
 
   constructor(id: string, owner: Player, maxPlayers: IntRange<2, 11>) {
     this.id = id;
@@ -28,6 +29,7 @@ class Take6Game {
     this.playedCard = {};
     this.columns = [[], [], [], [], [], []];
     this.deck = shuffle(Take6Card.generateDeck());
+    this.isFinished = false;
   }
 }
 

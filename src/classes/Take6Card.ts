@@ -8,7 +8,8 @@ class Take6Card {
   static generateDeck() {
     const deck: Take6Card[] = [];
 
-    for (let i = 1; i <= 104; i++) {
+    const CARD_COUNT = 104;
+    for (let i = 1; i <= CARD_COUNT; i++) {
       deck.push(new Take6Card(i));
     }
 
