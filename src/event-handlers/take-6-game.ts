@@ -21,7 +21,24 @@ const take6Game = (app: AppData, socket: Socket<any, any>, io: Server): Handler 
   'set-column-to-replace-take-6-game': setColumnToReplace(app, socket, io),
   'play-take-6-game-card': playTake6GameCard(app, socket, io),
   'delete-take-6-game': deleteTake6Game(app, socket, io),
+  'send-take-6-message': sendTake6Message(app, socket, io),
 });
+
+type SendMessageData = { message: string };
+type SendMessageFn = (
+  app: AppData,
+  socket: Socket<SendMessageData, any>,
+  io: Server,
+) => (data: SendMessageData) => void;
+
+const sendTake6Message: SendMessageFn = (app, socket, io) => (data) => {
+  const { game, player } = getGameFromSocket(app, socket);
+  if (!game || !player) return socket.emit('take-6-game-not-found');
+
+  app.take6Games[game.id].messages.push({ player: player, message: data.message });
+
+  io.to(game.id).emit('take-6-game-update', app.take6Games[game.id]);
+};
 
 const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: Take6Game; player?: Player } => {
   const player = socket.player;
@@ -33,6 +50,7 @@ const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: Tak
   );
   return { game, player };
 };
+
 type JoinGameData = { gameId: string };
 type JoinGameFn = (app: AppData, socket: Socket<JoinGameData, any>, io: Server) => (data: JoinGameData) => void;
 

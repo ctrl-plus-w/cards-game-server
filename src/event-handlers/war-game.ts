@@ -19,7 +19,24 @@ const warGame = (app: AppData, socket: Socket<any, any>, io: Server): Handler =>
   'get-war-game': getWarGame(app, socket),
   'play-war-game-card': playWarGameCard(app, socket, io),
   'delete-war-game': deleteWarGame(app, socket, io),
+  'send-war-message': sendWarGameMessage(app, socket, io),
 });
+
+type SendMessageData = { message: string };
+type SendMessageFn = (
+  app: AppData,
+  socket: Socket<SendMessageData, any>,
+  io: Server,
+) => (data: SendMessageData) => void;
+
+const sendWarGameMessage: SendMessageFn = (app, socket, io) => (data) => {
+  const { game, player } = getGameFromSocket(app, socket);
+  if (!game || !player) return socket.emit('war-game-not-found');
+
+  app.warGames[game.id].messages.push({ player: player, message: data.message });
+
+  io.to(game.id).emit('war-game-update', app.warGames[game.id]);
+};
 
 const getGameFromSocket = (app: AppData, socket: Socket<any, any>): { game?: WarGame; player?: Player } => {
   const player = socket.player;
