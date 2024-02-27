@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { uuid } from 'uuidv4';
 
-import PlayingCard, { CardSymbol } from '@/class/PlayingCard';
+import PlayingCard from '@/class/PlayingCard';
 import WarGame from '@/class/WarGame';
 
 import { IntRange } from '@/type/index.types';
